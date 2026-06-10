@@ -124,7 +124,7 @@ export default function RelatoriosPage() {
         const res = await fetch('/api/relatorios', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (!res.ok) throw new Error('Erro ao carregar relatÃ³rios');
+        if (!res.ok) throw new Error('Erro ao carregar relatórios');
         const json = await res.json();
         setData(json);
       } catch (err: any) {
@@ -199,7 +199,7 @@ export default function RelatoriosPage() {
   if (loading) {
     return (
       <div className="animate-fade-in space-y-6">
-        <h1 className="text-3xl font-bold text-slate-800">RelatÃ³rios Administrativos</h1>
+        <h1 className="text-3xl font-bold text-slate-800">Relatórios Administrativos</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-48 rounded-xl animate-pulse" style={{ background: '#f1f5f9' }} />
@@ -217,15 +217,15 @@ export default function RelatoriosPage() {
     <div className="animate-fade-in space-y-8">
       <div className="sticky top-0 z-10 bg-slate-50 py-4 border-b border-slate-200/50 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">RelatÃ³rios Administrativos</h1>
-          <p className="text-sm text-gray-500">VisÃ£o consolidada e tabelas de informaÃ§Ãµes do sistema acadÃªmico.</p>
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Relatórios Administrativos</h1>
+          <p className="text-sm text-gray-500">Visão consolidada e tabelas de informações do sistema acadêmico.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         <div className="card shadow-sm border-gray-200">
-          <h2 className="text-base font-bold mb-4 text-[#991b1b] border-b pb-2">Cursos de GraduaÃ§Ã£o com Maior Volume de Oferta de Turmas Ativas</h2>
+          <h2 className="text-base font-bold mb-4 text-[#991b1b] border-b pb-2">Cursos de Graduação com Maior Volume de Oferta de Turmas Ativas</h2>
           <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -264,7 +264,7 @@ export default function RelatoriosPage() {
         </div>
 
         <div className="card shadow-sm border-gray-200">
-          <h2 className="text-base font-bold mb-4 text-[#1e3a8a] border-b pb-2">Carga HorÃ¡ria Docente Excedente (Professores com mais de 40 Horas de Aula)</h2>
+          <h2 className="text-base font-bold mb-4 text-[#1e3a8a] border-b pb-2">Carga Horária Docente Excedente (Professores com mais de 40 Horas de Aula)</h2>
           <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -274,7 +274,7 @@ export default function RelatoriosPage() {
               currentSort={sort2}
               onSort={toggleSort(setSort2)}
               options={[
-                { label: 'MatrÃ­cula', value: 'matricula' },
+                { label: 'Matrícula', value: 'matricula' },
                 { label: 'Professor', value: 'nome' },
                 { label: 'Horas', value: 'total_horas' }
               ]}
@@ -284,7 +284,7 @@ export default function RelatoriosPage() {
             <table className="w-full text-sm text-left">
               <thead className="sticky top-0 bg-white shadow-sm">
                 <tr className="text-gray-600 bg-gray-50">
-                  <th className="py-2 px-3 font-semibold">MatrÃ­cula</th>
+                  <th className="py-2 px-3 font-semibold">Matrícula</th>
                   <th className="py-2 px-3 font-semibold">Professor</th>
                   <th className="py-2 px-3 font-semibold text-center">Horas</th>
                 </tr>
@@ -304,18 +304,18 @@ export default function RelatoriosPage() {
 
         <div className="card shadow-sm border-gray-200 flex flex-col">
           <div className="flex justify-between items-center mb-4 border-b pb-2">
-            <h2 className="text-sm font-bold text-slate-800">AnÃ¡lise de Limite de Capacidade das Salas Utilizadas (Maior vs Menor Sala)</h2>
+            <h2 className="text-sm font-bold text-slate-800">Análise de Limite de Capacidade das Salas Utilizadas (Maior vs Menor Sala)</h2>
             <select 
               className="border border-slate-200 rounded-lg text-sm p-1 focus:outline-none focus:border-slate-800 bg-white text-slate-800"
               value={diaSelecionado}
               onChange={e => setDiaSelecionado(e.target.value)}
             >
               <option value="Segunda-feira">Segunda-feira</option>
-              <option value="TerÃ§a-feira">TerÃ§a-feira</option>
+              <option value="Terça-feira">Terça-feira</option>
               <option value="Quarta-feira">Quarta-feira</option>
               <option value="Quinta-feira">Quinta-feira</option>
               <option value="Sexta-feira">Sexta-feira</option>
-              <option value="SÃ¡bado">SÃ¡bado</option>
+              <option value="Sábado">Sábado</option>
             </select>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-around flex-1 items-center">
@@ -333,17 +333,17 @@ export default function RelatoriosPage() {
         </div>
 
         <div className="card shadow-sm border-gray-200 flex flex-col">
-          <h2 className="text-base font-bold mb-4 text-slate-800 border-b pb-2">MÃ©dia da Capacidade de Assentos dos LaboratÃ³rios de InformÃ¡tica com Aulas Ativas</h2>
+          <h2 className="text-base font-bold mb-4 text-slate-800 border-b pb-2">Média da Capacidade de Assentos dos Laboratórios de Informática com Aulas Ativas</h2>
           <div className="text-center p-6 rounded-lg bg-slate-50 border border-slate-200 flex-1 flex flex-col justify-center">
             <p className="text-4xl font-black text-slate-800">
               {data?.mediaLugaresLabs?.[0]?.media_capacidade ? Number(data.mediaLugaresLabs[0].media_capacidade).toFixed(1) : 0}
             </p>
-            <p className="text-sm font-semibold text-slate-500 mt-1">lugares por laboratÃ³rio em mÃ©dia</p>
+            <p className="text-sm font-semibold text-slate-500 mt-1">lugares por laboratório em média</p>
           </div>
         </div>
 
         <div className="card shadow-sm border-gray-200">
-          <h2 className="text-base font-bold mb-4 text-emerald-700 border-b pb-2">Salas de Aula e LaboratÃ³rios de MÃ©dio Porte (30 a 50 Vagas) Atualmente Alocados</h2>
+          <h2 className="text-base font-bold mb-4 text-emerald-700 border-b pb-2">Salas de Aula e Laboratórios de Médio Porte (30 a 50 Vagas) Atualmente Alocados</h2>
           <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -369,18 +369,18 @@ export default function RelatoriosPage() {
         </div>
 
         <div className="card shadow-sm border-gray-200">
-          <h2 className="text-base font-bold mb-4 text-purple-700 border-b pb-2">RelaÃ§Ã£o Geral de Disciplinas Ofertadas por PerÃ­odo Letivo</h2>
+          <h2 className="text-base font-bold mb-4 text-purple-700 border-b pb-2">Relação Geral de Disciplinas Ofertadas por Período Letivo</h2>
           <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-              <input type="text" placeholder="Filtrar disciplinas ou perÃ­odo..." className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg w-full text-sm focus:outline-none focus:border-purple-700" value={filtro6} onChange={e => setFiltro6(e.target.value)} />
+              <input type="text" placeholder="Filtrar disciplinas ou período..." className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg w-full text-sm focus:outline-none focus:border-purple-700" value={filtro6} onChange={e => setFiltro6(e.target.value)} />
             </div>
             <SortDropdown
               currentSort={sort6}
               onSort={toggleSort(setSort6)}
               options={[
                 { label: 'Disciplina', value: 'nome' },
-                { label: 'PerÃ­odo', value: 'periodo_ideal' }
+                { label: 'Período', value: 'periodo_ideal' }
               ]}
             />
           </div>
@@ -389,14 +389,14 @@ export default function RelatoriosPage() {
               <thead className="sticky top-0 bg-white shadow-sm">
                 <tr className="text-gray-600 bg-gray-50">
                   <th className="py-2 px-3 font-semibold">Disciplina</th>
-                  <th className="py-2 px-3 font-semibold text-center">PerÃ­odo</th>
+                  <th className="py-2 px-3 font-semibold text-center">Período</th>
                 </tr>
               </thead>
               <tbody>
                 {f6.length ? f6.map((t: any, i: number) => (
                   <tr key={i} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-3 font-medium">{t.nome}</td>
-                    <td className="py-2 px-3 text-center"><span className="bg-purple-100 text-purple-800 border border-purple-200 px-2 py-1 rounded-full text-xs font-semibold">{t.periodo_ideal}Âº</span></td>
+                    <td className="py-2 px-3 text-center"><span className="bg-purple-100 text-purple-800 border border-purple-200 px-2 py-1 rounded-full text-xs font-semibold">{t.periodo_ideal}º</span></td>
                   </tr>
                 )) : <tr><td colSpan={2} className="text-center py-4 text-gray-500">Nenhum resultado</td></tr>}
               </tbody>
@@ -407,7 +407,7 @@ export default function RelatoriosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="card shadow-sm border-gray-200">
-          <h2 className="text-base font-bold mb-4 text-slate-800 border-b pb-2">Consulta Consolidada: RelaÃ§Ã£o Geral de Cursos, Disciplinas e Turmas por Semestre</h2>
+          <h2 className="text-base font-bold mb-4 text-slate-800 border-b pb-2">Consulta Consolidada: Relação Geral de Cursos, Disciplinas e Turmas por Semestre</h2>
           
           <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
             <div className="relative flex-1">
@@ -449,7 +449,7 @@ export default function RelatoriosPage() {
                       <td className="py-2 px-3 text-xs text-gray-500">{v.id_turma}</td>
                       <td className="py-2 px-3 font-semibold">{v.curso}</td>
                       <td className="py-2 px-3">{v.disciplina}</td>
-                      <td className="py-2 px-3 text-xs">{v.ano}/{v.semestre}Âº</td>
+                      <td className="py-2 px-3 text-xs">{v.ano}/{v.semestre}º</td>
                     </tr>
                   )) : <tr><td colSpan={4} className="text-center py-4 text-gray-500">Nenhum resultado encontrado.</td></tr>}
                 </tbody>
@@ -459,7 +459,7 @@ export default function RelatoriosPage() {
         </div>
 
         <div className="card shadow-sm border-gray-200">
-          <h2 className="text-base font-bold mb-4 text-slate-800 border-b pb-2">Consulta Consolidada: Capacidade e DistribuiÃ§Ã£o Geral de Salas por Tipo e Bloco</h2>
+          <h2 className="text-base font-bold mb-4 text-slate-800 border-b pb-2">Consulta Consolidada: Capacidade e Distribuição Geral de Salas por Tipo e Bloco</h2>
           
           <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
             <div className="relative flex-1">
