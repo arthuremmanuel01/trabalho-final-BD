@@ -145,8 +145,8 @@ export default function RelatoriosPage() {
   }, [data, filtro1]);
 
   const f2Filtered = useMemo(() => {
-    if (!data?.professoresMaisDe40Horas) return [];
-    return data.professoresMaisDe40Horas.filter((item: any) =>
+    if (!data?.professoresCargaHoraria) return [];
+    return data.professoresCargaHoraria.filter((item: any) =>
       item.nome?.toLowerCase().includes(filtro2.toLowerCase()) ||
       item.matricula?.toLowerCase().includes(filtro2.toLowerCase())
     );
@@ -264,7 +264,7 @@ export default function RelatoriosPage() {
         </div>
 
         <div className="card shadow-sm border-gray-200">
-          <h2 className="text-base font-bold mb-4 text-[#1e3a8a] border-b pb-2">Carga Horária Docente Excedente (Professores com mais de 40 Horas de Aula)</h2>
+          <h2 className="text-base font-bold mb-4 text-[#1e3a8a] border-b pb-2">Carga Horária Docente Semanal</h2>
           <div className="mb-4 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />

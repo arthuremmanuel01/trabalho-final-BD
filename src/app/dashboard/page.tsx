@@ -82,12 +82,12 @@ export default function DashboardPage() {
   }
 
   const professoresData = useMemo(() => {
-    if (!relatorios?.professoresMaisDe40Horas) return [];
-    return relatorios.professoresMaisDe40Horas.map((p: any) => ({
+    if (!relatorios?.professoresCargaHoraria) return [];
+    return relatorios.professoresCargaHoraria.map((p: any) => ({
       ...p,
       nome_curto: formatarNomeProfessor(p.nome)
     }));
-  }, [relatorios?.professoresMaisDe40Horas]);
+  }, [relatorios?.professoresCargaHoraria]);
 
   if (!usuario) return null;
 
@@ -152,7 +152,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="card shadow-sm border-gray-200">
-            <h2 className="text-base font-bold mb-4 text-[#1e3a8a] border-b pb-2">Professores com Maior Carga Horária Alocada (Acima de 40 Horas Semanais)</h2>
+            <h2 className="text-base font-bold mb-4 text-[#1e3a8a] border-b pb-2">Carga Horária Semanal dos Professores</h2>
             <div className="w-full h-64 mt-4">
               {professoresData.length ? (
                 <ResponsiveContainer width="100%" height="100%">

@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
       });
 
       const disciplinasCount = disciplinas.length;
-      const cargaHoraria = disciplinas.reduce((acc, d) => acc + d.carga_horaria, 0);
+      const cargaHorariaTotal = disciplinas.reduce((acc, d) => acc + d.carga_horaria, 0);
+      const cargaHoraria = Math.round(cargaHorariaTotal / 20); // Conversão para carga semanal
 
       return NextResponse.json({
         isProfessor: true,

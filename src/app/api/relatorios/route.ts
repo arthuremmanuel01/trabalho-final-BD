@@ -12,15 +12,16 @@ export async function GET() {
       HAVING COUNT(t.id_turma) > 2
     `;
 
-    // Assume-se que a carga horária é a soma da carga horária das disciplinas que eles ensinam.
-    const professoresMaisDe40Horas = await prisma.$queryRaw`
-      SELECT u.nome, p.matricula, SUM(d.carga_horaria) as total_horas
+    // A carga horária da disciplina é do semestre inteiro.
+    // Dividimos por 20 (padrão de semanas no semestre) para obter a carga semanal.
+    const professoresCargaHoraria = await prisma.$queryRaw`
+      SELECT u.nome, p.matricula, CAST(ROUND(SUM(d.carga_horaria) / 20.0) AS INTEGER) as total_horas
       FROM PROFESSOR p
       JOIN USUARIO u ON p.id_usuario = u.id_usuario
       JOIN TURMA t ON p.id_professor = t.id_professor
       JOIN DISCIPLINA d ON t.id_disciplina = d.id_disciplina
       GROUP BY p.id_professor
-      HAVING SUM(d.carga_horaria) > 40
+      ORDER BY total_horas DESC
     `;
 
     const maiorMenorSalaPorDia = await prisma.$queryRaw`
@@ -76,7 +77,7 @@ export async function GET() {
 
     return NextResponse.json(serialize({
       cursosMaisDeDuasTurmas,
-      professoresMaisDe40Horas,
+      professoresCargaHoraria,
       maiorMenorSalaPorDia,
       mediaLugaresLabs,
       salasOcupadas30a50,
