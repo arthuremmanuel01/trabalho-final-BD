@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Curso {
+  id_curso    Int          @id @default(autoincrement())
+  nome        String
+  sigla       String
+  disciplinas Disciplina[]
+
+  @@map("CURSO")
+}
+
+model Disciplina {
+  id_disciplina Int     @id @default(autoincrement())
+  id_curso      Int
+  nome          String
+  carga_horaria Int
+  periodo_ideal Int
+  curso         Curso   @relation(fields: [id_curso], references: [id_curso])
+  turmas        Turma[]
+
+  @@map("DISCIPLINA")
+}
+
+model Usuario {
+  id_usuario Int       @id @default(autoincrement())
+  nome       String
+  email      String    @unique
+  senha      String
+  perfil     String
+  professor  Professor?
+
+  @@map("USUARIO")
+}
+
+model Professor {
+  id_professor Int     @id @default(autoincrement())
+  id_usuario   Int     @unique
+  matricula    String
+  titulacao    String
+  usuario      Usuario @relation(fields: [id_usuario], references: [id_usuario])
+  turmas       Turma[]
+
+  @@map("PROFESSOR")
+}
+
+model Turma {
+  id_turma      Int        @id @default(autoincrement())
+  id_disciplina Int
+  id_professor  Int
+  ano           Int
+  semestre      Int
+  disciplina    Disciplina @relation(fields: [id_disciplina], references: [id_disciplina])
+  professor     Professor  @relation(fields: [id_professor], references: [id_professor])
+  alocacoes     Alocacao[]
+
+  @@map("TURMA")
+}
+
+model TipoSala {
+  id_tipo_sala   Int    @id @default(autoincrement())
+  descricao_tipo String
+  salas          Sala[]
+
+  @@map("TIPO_SALA")
+}
+
+model Sala {
+  id_sala      Int       @id @default(autoincrement())
+  id_tipo_sala Int
+  numero       String
+  capacidade   Int
+  tipo         TipoSala  @relation(fields: [id_tipo_sala], references: [id_tipo_sala])
+  alocacoes    Alocacao[]
+
+  @@map("SALA")
+}
+
+model Dia {
+  id_dia    Int        @id @default(autoincrement())
+  nome_dia  String
+  alocacoes Alocacao[]
+
+  @@map("DIA")
+}
+
+model Horario {
+  id_horario  Int        @id @default(autoincrement())
+  hora_inicio String
+  hora_fim    String
+  alocacoes   Alocacao[]
+
+  @@map("HORARIO")
+}
+
+model Alocacao {
+  id_alocacao Int     @id @default(autoincrement())
+  id_turma    Int
+  id_sala     Int
+  id_dia      Int
+  id_horario  Int
+  turma       Turma   @relation(fields: [id_turma], references: [id_turma])
+  sala        Sala    @relation(fields: [id_sala], references: [id_sala])
+  dia         Dia     @relation(fields: [id_dia], references: [id_dia])
+  horario     Horario @relation(fields: [id_horario], references: [id_horario])
+
+  @@map("ALOCACAO")
+}
