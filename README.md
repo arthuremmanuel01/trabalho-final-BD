@@ -21,7 +21,11 @@ Este projeto foi construído como parte do Trabalho Prático de Banco de Dados, 
 * **Professores:** Cadastro integrado ao usuário do sistema.
 * **Turmas:** Associação de disciplina, professor responsável, ano e semestre.
 * **Salas e Espaços:** Categorização por tipo (Sala de Aula, Laboratório de Informática, Auditório) com suas respectivas capacidades de alunos e blocos.
-* **Quadro de Alocações:** Mapeamento de dia da semana, horário (slots de aula) e salas ocupadas, com validação inteligente de choques de horário.
+* **Quadro de Alocações Interativo (Timetable Grid):**
+  * Grade Semanal responsiva e visual, permitindo ver todos os dias úteis na tela sem rolagem.
+  * Sistema de Arrastar e Soltar (Drag and Drop) preciso com bibliotecas modernas (`@dnd-kit`).
+  * Inserção Rápida via cliques (Click-to-Add) para alocações contínuas.
+  * **Draft Mode:** Estado local de rascunho com validação instantânea de conflitos (choque de horários de professor ou limites diários) e Salvamento em Lote (Bulk Save) protegido contra perda de dados.
 
 ### 📊 Dashboard e Relatórios Administrativos
 * **Gráficos Interativos (Recharts):** Gráficos dinâmicos de ocupação por bloco, salas por tipo e distribuição de carga horária.
