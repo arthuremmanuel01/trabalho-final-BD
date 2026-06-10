@@ -13,6 +13,7 @@ interface TimetableGridProps {
   perfil?: string;
   selectedTurma?: any;
   onSlotClick?: (dia: any, horario: any) => void;
+  globalSalaId?: string;
 }
 
 export default function TimetableGrid({
@@ -24,6 +25,7 @@ export default function TimetableGrid({
   perfil,
   selectedTurma,
   onSlotClick,
+  globalSalaId,
 }: TimetableGridProps) {
   const [hoveredSlot, setHoveredSlot] = useState<{diaId: number, horarioId: number} | null>(null);
 
@@ -40,6 +42,48 @@ export default function TimetableGrid({
       return `Sala ${bloco}-${num}`.replace('--', '-');
     }
     return str.replace(/Laborat[óo]rio/i, 'Lab').replace(/Sala de [Aa]ula/i, 'Sala');
+  };
+
+  const checkConflict = (targetTurma: any, diaId: number, horarioId: number) => {
+    if (!targetTurma) return false;
+    
+    // Regra 1: Limite de 2 alocações por dia
+    const countPerDay = alocacoes.filter(a => a.turma?.id_turma === targetTurma.id_turma && a.dia?.id_dia === diaId).length;
+    if (countPerDay >= 2) return true;
+
+    const allocationsInSlot = alocacoes.filter(
+      (a) => a.dia?.id_dia === diaId && a.horario?.id_horario === horarioId
+    );
+
+    for (const a of allocationsInSlot) {
+      // Regra 2: Conflito de Período
+      if (
+        a.turma?.disciplina?.periodo_ideal === targetTurma.disciplina?.periodo_ideal &&
+        a.turma?.id_turma !== targetTurma.id_turma
+      ) {
+        return true;
+      }
+      
+      // Regra 3: Conflito de Professor
+      if (
+        a.turma?.professor?.id_professor === targetTurma.professor?.id_professor &&
+        targetTurma.professor?.id_professor != null &&
+        a.turma?.id_turma !== targetTurma.id_turma
+      ) {
+        return true;
+      }
+
+      // Mesma turma no mesmo horário
+      if (a.turma?.id_turma === targetTurma.id_turma) {
+        return true;
+      }
+
+      // Regra 4: Conflito de Sala Global
+      if (globalSalaId && a.sala?.id_sala === Number(globalSalaId)) {
+         return true;
+      }
+    }
+    return false;
   };
 
   return (
@@ -76,13 +120,7 @@ export default function TimetableGrid({
                   let isConflict = undefined;
 
                   if (activeDragData && activeDragData.type === 'TURMA') {
-                    const draggingTurma = activeDragData.turma;
-                    isConflict = allocationsInSlot.some(
-                      (a) =>
-                        (a.turma?.professor?.id_professor === draggingTurma.professor?.id_professor &&
-                          draggingTurma.professor?.id_professor != null) ||
-                        a.turma?.id_turma === draggingTurma.id_turma
-                    );
+                    isConflict = checkConflict(activeDragData.turma, dia.id_dia, horario.id_horario);
                     isValidDrop = !isConflict;
                   }
 
@@ -91,12 +129,7 @@ export default function TimetableGrid({
                   let simulatedIsConflict = undefined;
 
                   if (selectedTurma && !activeDragData) {
-                    simulatedIsConflict = allocationsInSlot.some(
-                      (a) =>
-                        (a.turma?.professor?.id_professor === selectedTurma.professor?.id_professor &&
-                          selectedTurma.professor?.id_professor != null) ||
-                        a.turma?.id_turma === selectedTurma.id_turma
-                    );
+                    simulatedIsConflict = checkConflict(selectedTurma, dia.id_dia, horario.id_horario);
                     simulatedIsValid = !simulatedIsConflict;
                   }
 

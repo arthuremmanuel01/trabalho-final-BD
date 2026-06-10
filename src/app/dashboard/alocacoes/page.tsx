@@ -117,6 +117,14 @@ export default function AlocacoesPage() {
 
     const allocationsInSlot = combinedAllocations.filter(a => a.dia?.id_dia === diaId && a.horario?.id_horario === horarioId);
     
+    // Conflito de Período (Regra 2)
+    const conflitoPeriodo = allocationsInSlot.some(a => 
+      a.turma?.disciplina?.periodo_ideal === turma.disciplina?.periodo_ideal &&
+      a.turma?.id_turma !== turma.id_turma
+    );
+    if (conflitoPeriodo) return { valid: false, message: `Conflito de período (${turma.disciplina?.periodo_ideal}º P) neste horário.` };
+
+    // Conflito de Professor (Regra 3) ou mesma turma no mesmo horário
     const isConflict = allocationsInSlot.some(a =>
       (a.turma?.professor?.id_professor === turma.professor?.id_professor && turma.professor?.id_professor != null) ||
       a.turma?.id_turma === turma.id_turma
@@ -124,6 +132,7 @@ export default function AlocacoesPage() {
     
     if (isConflict) return { valid: false, message: 'Conflito identificado: Professor ou Turma já alocada neste horário.' };
 
+    // Conflito de Sala (Regra 4)
     if (globalSalaId) {
       const isSalaOcupada = allocationsInSlot.some(a => a.sala?.id_sala === Number(globalSalaId));
       if (isSalaOcupada) return { valid: false, message: 'A sala selecionada já possui alocação neste horário.' };
@@ -294,6 +303,7 @@ export default function AlocacoesPage() {
             perfil={perfil}
             selectedTurma={turmas.find(t => t.id_turma === selectedTurmaId)}
             onSlotClick={handleSlotClick}
+            globalSalaId={globalSalaId}
           />
         </div>
 
