@@ -1,9 +1,22 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import Modal from '@/components/ui/Modal';
 import Toast from '@/components/ui/Toast';
-import { Edit2, Trash2, Plus, Calendar, GraduationCap, BookOpen, Users, UsersRound, School, Clock, FileText, LayoutDashboard, Menu, X, LogOut, Rocket, Hand, AlertTriangle, XCircle, Lock, User } from 'lucide-react';
+import {
+  DndContext,
+  DragOverlay,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragStartEvent,
+  DragEndEvent,
+  MeasuringStrategy,
+} from '@dnd-kit/core';
+import { restrictToWindowEdges } from '@dnd-kit/modifiers';
+
+import SidebarClasses from '@/components/ui/SidebarClasses';
+import TimetableGrid from '@/components/ui/TimetableGrid';
+import ClassCard from '@/components/ui/ClassCard';
 
 interface Disciplina { id_disciplina: number; nome: string; periodo_ideal: number; }
 interface Professor { id_professor: number; usuario?: { id_usuario: number; nome: string }; }
@@ -13,23 +26,18 @@ interface Sala { id_sala: number; numero: string; capacidade: number; tipo?: Tip
 interface Dia { id_dia: number; nome_dia: string; }
 interface Horario { id_horario: number; hora_inicio: string; hora_fim: string; }
 interface Alocacao {
-  id_alocacao: number;
+  id_alocacao: number | string;
+  id_turma?: number;
+  id_sala?: number;
+  id_dia?: number;
+  id_horario?: number;
   turma?: Turma;
   sala?: Sala;
   dia?: Dia;
   horario?: Horario;
+  isDraft?: boolean;
 }
 interface ToastState { message: string; type: 'success' | 'error' | 'warning'; }
-interface BusinessError { message: string; rule: string; }
-
-const RULE_LABELS: Record<string, { icon: string; color: string; label: string }> = {
-  RULE_1: { icon: '⚠️', color: '#f59e0b', label: 'Limite Diário Excedido' },
-  RULE_2: { icon: '🚫', color: '#ef4444', label: 'Conflito de Período Ideal' },
-  RULE_3: { icon: '🚫', color: '#ef4444', label: 'Conflito de Professor' },
-  RULE_4: { icon: '🚫', color: '#ef4444', label: 'Conflito de Sala' },
-};
-
-const emptyForm = { id_turma: '', id_sala: '', id_dia: '', id_horario: '' };
 
 export default function AlocacoesPage() {
   const [alocacoes, setAlocacoes] = useState<Alocacao[]>([]);
@@ -38,15 +46,26 @@ export default function AlocacoesPage() {
   const [dias, setDias] = useState<Dia[]>([]);
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
+  
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [businessError, setBusinessError] = useState<BusinessError | null>(null);
-  const [filterDia, setFilterDia] = useState('');
   const [perfil, setPerfil] = useState('');
   const [userId, setUserId] = useState<number | null>(null);
-  const [showOnlyMyClasses, setShowOnlyMyClasses] = useState(false);
+
+  const [activeDragData, setActiveDragData] = useState<any>(null);
+  const [draftAllocations, setDraftAllocations] = useState<Alocacao[]>([]);
+  const [selectedTurmaId, setSelectedTurmaId] = useState<number | null>(null);
+  const [globalSalaId, setGlobalSalaId] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+
+  const combinedAllocations = [...alocacoes, ...draftAllocations];
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
   useEffect(() => {
     const uStr = localStorage.getItem('usuario');
@@ -55,12 +74,20 @@ export default function AlocacoesPage() {
         const u = JSON.parse(uStr);
         setPerfil(u.perfil);
         setUserId(u.id);
-        if (u.perfil === 'professor') {
-          setShowOnlyMyClasses(true);
-        }
       } catch {}
     }
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (draftAllocations.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [draftAllocations]);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -84,280 +111,225 @@ export default function AlocacoesPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  function openCreate() {
-    setForm(emptyForm);
-    setBusinessError(null);
-    setModalOpen(true);
-  }
+  const validateLocalPlacement = (turma: any, diaId: number, horarioId: number) => {
+    const countPerDay = combinedAllocations.filter(a => a.turma?.id_turma === turma.id_turma && a.dia?.id_dia === diaId).length;
+    if (countPerDay >= 2) return { valid: false, message: 'Máximo de 2 alocações por dia excedido para esta turma.' };
 
-  async function handleSave() {
-    if (!form.id_turma || !form.id_sala || !form.id_dia || !form.id_horario) {
-      setToast({ message: 'Selecione todos os campos.', type: 'error' }); return;
+    const allocationsInSlot = combinedAllocations.filter(a => a.dia?.id_dia === diaId && a.horario?.id_horario === horarioId);
+    
+    const isConflict = allocationsInSlot.some(a =>
+      (a.turma?.professor?.id_professor === turma.professor?.id_professor && turma.professor?.id_professor != null) ||
+      a.turma?.id_turma === turma.id_turma
+    );
+    
+    if (isConflict) return { valid: false, message: 'Conflito identificado: Professor ou Turma já alocada neste horário.' };
+
+    if (globalSalaId) {
+      const isSalaOcupada = allocationsInSlot.some(a => a.sala?.id_sala === Number(globalSalaId));
+      if (isSalaOcupada) return { valid: false, message: 'A sala selecionada já possui alocação neste horário.' };
     }
+
+    return { valid: true };
+  };
+
+  const handleSlotAction = (turma: any, dia: any, horario: any) => {
+    if (!globalSalaId) {
+      setToast({ message: 'Selecione uma sala no cabeçalho antes de alocar.', type: 'warning' });
+      return;
+    }
+    const validation = validateLocalPlacement(turma, dia.id_dia, horario.id_horario);
+    if (!validation.valid) {
+      setToast({ message: validation.message || 'Erro de validação.', type: 'error' });
+      return;
+    }
+    const salaObj = salas.find(s => s.id_sala === Number(globalSalaId));
+    const newDraft: Alocacao = {
+      id_alocacao: `draft-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id_turma: turma.id_turma,
+      id_sala: Number(globalSalaId),
+      id_dia: dia.id_dia,
+      id_horario: horario.id_horario,
+      turma,
+      sala: salaObj,
+      dia,
+      horario,
+      isDraft: true,
+    };
+    setDraftAllocations(prev => [...prev, newDraft]);
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragData(event.active.data.current);
+    setSelectedTurmaId(null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragData(null);
+
+    if (!over) return; 
+
+    if (over.data.current?.type === 'SLOT' && active.data.current?.type === 'TURMA') {
+      handleSlotAction(active.data.current.turma, over.data.current.dia, over.data.current.horario);
+    }
+  };
+
+  const handleSlotClick = (dia: any, horario: any) => {
+    if (!selectedTurmaId) return;
+    const turma = turmas.find(t => t.id_turma === selectedTurmaId);
+    if (turma) handleSlotAction(turma, dia, horario);
+  };
+
+  async function handleSaveBulk() {
     setSaving(true);
-    setBusinessError(null);
     try {
-      const res = await fetch('/api/alocacoes', {
+      const payload = draftAllocations.map(d => ({
+        id_turma: d.id_turma,
+        id_sala: d.id_sala,
+        id_dia: d.id_dia,
+        id_horario: d.id_horario,
+      }));
+
+      const res = await fetch('/api/alocacoes/bulk', {
         method: 'POST', headers,
-        body: JSON.stringify({
-          id_turma: Number(form.id_turma),
-          id_sala: Number(form.id_sala),
-          id_dia: Number(form.id_dia),
-          id_horario: Number(form.id_horario),
-        }),
+        body: JSON.stringify({ alocacoes: payload }),
       });
       const data = await res.json();
 
-      if (res.status === 422) {
-        // Violação de regra de negócio (erro exibido dentro do próprio modal)
-        setBusinessError({ message: data.error, rule: data.rule ?? 'UNKNOWN' });
+      if (!res.ok) {
+        setToast({ message: data.error ?? 'Erro ao processar alocações.', type: 'error' });
         return;
       }
-      if (!res.ok) {
-        setToast({ message: data.error ?? 'Erro ao criar alocação.', type: 'error' }); return;
-      }
-      setToast({ message: 'Alocação criada com sucesso!', type: 'success' });
-      setModalOpen(false);
+      
+      setToast({ message: 'Modificações sincronizadas com sucesso.', type: 'success' });
+      setDraftAllocations([]);
       fetchData();
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleDiscardBulk() {
+    if (confirm('Você tem certeza que deseja descartar todas as modificações atuais?')) {
+      setDraftAllocations([]);
+    }
   }
 
   async function handleDelete(a: Alocacao) {
+    if (a.isDraft) {
+      setDraftAllocations(prev => prev.filter(d => d.id_alocacao !== a.id_alocacao));
+      return;
+    }
     const label = `${a.turma?.disciplina?.nome ?? 'Turma'} — ${a.dia?.nome_dia} ${a.horario?.hora_inicio}`;
-    if (!confirm(`Remover alocação: "${label}"?`)) return;
+    if (!confirm(`Remover alocação definitiva do sistema: "${label}"?`)) return;
+    
     const res = await fetch(`/api/alocacoes/${a.id_alocacao}`, { method: 'DELETE', headers });
-    const data = await res.json();
-    if (!res.ok) { setToast({ message: data.error, type: 'error' }); return; }
-    setToast({ message: 'Alocação removida.', type: 'success' });
+    if (!res.ok) { 
+      const data = await res.json();
+      setToast({ message: data.error, type: 'error' }); 
+      return; 
+    }
+    setToast({ message: 'Alocação removida do sistema.', type: 'success' });
     fetchData();
   }
 
-  const filteredAlocacoes = alocacoes.filter(a => {
-    if (filterDia && String(a.dia?.id_dia) !== filterDia) return false;
-    if (showOnlyMyClasses && userId && a.turma?.professor?.usuario?.id_usuario !== userId) return false;
-    return true;
-  });
-
-  const ruleInfo = businessError ? (RULE_LABELS[businessError.rule] ?? { icon: '❌', color: '#ef4444', label: 'Regra violada' }) : null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-500">
+        <svg className="animate-spin w-8 h-8 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+        Carregando interface...
+      </div>
+    );
+  }
 
   return (
-    <div className="animate-fade-in">
+    <div className="flex flex-col h-full min-h-[calc(100vh-2rem)]" style={{ backgroundColor: '#f8fafc' }}>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-
-      <div className="sticky top-0 z-10 bg-slate-50 py-4 border-b border-slate-200/50 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Gestão de Alocações</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-            {alocacoes.length} alocação(ões) · Validações automáticas de conflito ativas
+          <h1 className="text-3xl font-bold text-slate-800">Grade de Horários</h1>
+          <p className="text-sm mt-1 text-slate-500">
+            Arraste as turmas ou clique em uma para habilitar a Inserção Rápida.
           </p>
         </div>
-        {perfil !== 'professor' && (
-          <button onClick={openCreate} className="btn-primary" id="btn-nova-alocacao">
-            <Calendar className="w-4 h-4 inline mr-1" /> Nova Alocação
-          </button>
-        )}
+        <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+          <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Sala Global:</label>
+          <select
+            className="border border-slate-300 rounded-md p-1.5 text-sm focus:ring-2 focus:ring-indigo-500 bg-white min-w-[200px]"
+            value={globalSalaId}
+            onChange={e => setGlobalSalaId(e.target.value)}
+          >
+            <option value="">Selecione uma sala...</option>
+            {salas.map(s => (
+              <option key={s.id_sala} value={s.id_sala}>
+                {s.numero} — {s.tipo?.descricao_tipo}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
+      <DndContext
+        sensors={sensors}
+        modifiers={[restrictToWindowEdges]}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveDragData(null)}
+      >
+        <div className="flex flex-col xl:flex-row flex-1 h-[75vh] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <SidebarClasses 
+            turmas={turmas} 
+            selectedTurmaId={selectedTurmaId}
+            onSelectTurma={(id) => setSelectedTurmaId(id === selectedTurmaId ? null : id)}
+          />
 
+          <TimetableGrid
+            dias={dias}
+            horarios={horarios}
+            alocacoes={combinedAllocations}
+            activeDragData={activeDragData}
+            onDelete={handleDelete}
+            perfil={perfil}
+            selectedTurma={turmas.find(t => t.id_turma === selectedTurmaId)}
+            onSlotClick={handleSlotClick}
+          />
+        </div>
 
+        <DragOverlay dropAnimation={null}>
+          {activeDragData && activeDragData.type === 'TURMA' ? (
+            <div className="opacity-95 pointer-events-none shadow-2xl z-[9999] cursor-grabbing w-[320px]">
+              <ClassCard turma={activeDragData.turma} isDragging={true} />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <label className="text-sm font-medium" style={{ color: 'var(--muted)' }}>Filtrar por dia:</label>
-        <select className="input-field" style={{ width: 'auto', minWidth: '180px' }} value={filterDia} onChange={e => setFilterDia(e.target.value)}>
-          <option value="">Todos os dias</option>
-          {dias.map(d => <option key={d.id_dia} value={d.id_dia}>{d.nome_dia}</option>)}
-        </select>
-        {filterDia && (
-          <button onClick={() => setFilterDia('')} className="text-xs px-3 py-1.5 rounded-lg"
-            style={{ background: 'rgba(0,0,0,0.07)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}>
-            Limpar filtro
+      {draftAllocations.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md border border-slate-200 shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 z-50 animate-fade-in">
+          <span className="text-sm font-medium text-slate-800">
+            Você possui <strong className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{draftAllocations.length}</strong> alterações não salvas.
+          </span>
+          <div className="h-6 w-px bg-slate-200 mx-1"></div>
+          <button 
+            onClick={handleDiscardBulk}
+            disabled={saving}
+            className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            Descartar
           </button>
-        )}
-        
-        <div className="flex items-center gap-2 ml-4">
-          <label className="flex items-center cursor-pointer">
-            <div className="relative">
-              <input type="checkbox" className="sr-only" checked={showOnlyMyClasses} onChange={(e) => setShowOnlyMyClasses(e.target.checked)} />
-              <div className={`block w-10 h-6 rounded-full transition-colors ${showOnlyMyClasses ? 'bg-red-800' : 'bg-gray-300'}`}></div>
-              <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${showOnlyMyClasses ? 'transform translate-x-4' : ''}`}></div>
-            </div>
-            <span className="ml-3 text-sm font-medium text-slate-700">Ver apenas minhas turmas</span>
-          </label>
-        </div>
-
-        <span className="ml-auto text-sm" style={{ color: 'var(--muted)' }}>{filteredAlocacoes.length} resultado(s)</span>
-      </div>
-
-
-      {loading ? (
-        <div className="grid grid-cols-2 gap-4">
-          {[...Array(6)].map((_, i) => <div key={i} className="h-32 rounded-xl animate-pulse" style={{ background: 'rgba(0,0,0,0.05)' }} />)}
-        </div>
-      ) : filteredAlocacoes.length === 0 ? (
-        <div className="card text-center py-16" style={{ color: 'var(--muted)' }}>
-          <p className="text-5xl mb-4"><Calendar className="w-12 h-12 mb-3 text-slate-300 mx-auto" /></p>
-          <p className="font-medium text-lg">Nenhuma alocação {filterDia ? 'neste dia' : 'cadastrada'}</p>
-          <p className="text-sm mt-2">Clique em &ldquo;Nova Alocação&rdquo; para começar</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredAlocacoes.map((a, idx) => (
-            <div key={a.id_alocacao} className="card animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-              style={{ animationDelay: `${idx * 0.04}s`, borderColor: 'var(--card-border)' }}>
-              
-
-              <div className="flex-shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center text-center"
-                style={{ background: '#fff7ed', border: '1px solid #fed7aa' }}>
-                <span className="text-xs font-bold" style={{ color: '#9a3412' }}>
-                  {a.horario?.hora_inicio?.slice(0, 5) ?? '--'}
-                </span>
-                <span className="text-xs" style={{ color: '#c2410c' }}>
-                  {a.horario?.hora_fim?.slice(0, 5) ?? '--'}
-                </span>
-              </div>
-
-
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate">{a.turma?.disciplina?.nome ?? 'Disciplina'}</p>
-                <p className="text-sm flex items-center gap-1" style={{ color: 'var(--muted)' }}>
-                  <User className="w-3.5 h-3.5" /> {a.turma?.professor?.usuario?.nome ?? '—'}
-                </p>
-              </div>
-
-
-              <div className="text-center flex-shrink-0">
-                <span className="badge" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}>
-                  {a.dia?.nome_dia ?? '—'}
-                </span>
-              </div>
-
-
-              <div className="text-center flex-shrink-0">
-                <p className="font-medium text-sm flex items-center gap-1"><School className="w-3.5 h-3.5" /> {a.sala?.numero ?? '—'}</p>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {a.sala?.tipo?.descricao_tipo ?? ''} · {a.sala?.capacidade} vagas
-                </p>
-              </div>
-
-
-              <div className="text-center flex-shrink-0">
-                <span className="badge badge-admin">
-                  {a.turma?.disciplina?.periodo_ideal ?? '?'}º período
-                </span>
-              </div>
-
-
-              {perfil !== 'professor' && (
-                <button onClick={() => handleDelete(a)} className="flex-shrink-0 px-3 py-2 rounded-lg text-xs transition-all"
-                  style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}>
-                  <Trash2 className="w-4 h-4 inline mr-1" /> Remover
-                </button>
-              )}
-            </div>
-          ))}
+          <button 
+            onClick={handleSaveBulk}
+            disabled={saving}
+            className="text-sm font-semibold bg-indigo-600 text-white px-5 py-2 rounded-full hover:bg-indigo-700 shadow-md transition-all flex items-center gap-2 hover:scale-105"
+          >
+            {saving ? (
+              <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg> Salvando</>
+            ) : 'Salvar Mudanças'}
+          </button>
         </div>
       )}
-
-
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Nova Alocação de Horário" size="lg">
-        <div className="flex flex-col gap-4">
-          
-
-          {businessError && (
-            <div className="rounded-xl p-4 flex items-start gap-3 animate-fade-in bg-red-50 border border-red-200">
-              <XCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-              <div>
-                <p className="text-sm text-red-800 font-medium">
-                  {businessError.message}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--muted)' }}>
-                Turma / Disciplina <span style={{ color: '#f87171' }}>*</span>
-              </label>
-              <select className="input-field" value={form.id_turma}
-                onChange={e => { setForm(f => ({ ...f, id_turma: e.target.value })); setBusinessError(null); }}>
-                <option value="">Selecione a turma</option>
-                {turmas.map(t => (
-                  <option key={t.id_turma} value={t.id_turma}>
-                    [{t.disciplina?.periodo_ideal ?? '?'}º per.] {t.disciplina?.nome} — Prof. {t.professor?.usuario?.nome ?? '?'}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--muted)' }}>
-                Sala <span style={{ color: '#f87171' }}>*</span>
-              </label>
-              <select className="input-field" value={form.id_sala}
-                onChange={e => { setForm(f => ({ ...f, id_sala: e.target.value })); setBusinessError(null); }}>
-                <option value="">Selecione a sala</option>
-                {salas.map(s => (
-                  <option key={s.id_sala} value={s.id_sala}>
-                    {s.numero} — {s.tipo?.descricao_tipo} ({s.capacidade} vagas)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--muted)' }}>
-                  Dia da Semana <span style={{ color: '#f87171' }}>*</span>
-                </label>
-                <select className="input-field" value={form.id_dia}
-                  onChange={e => { setForm(f => ({ ...f, id_dia: e.target.value })); setBusinessError(null); }}>
-                  <option value="">Selecione o dia</option>
-                  {dias.map(d => <option key={d.id_dia} value={d.id_dia}>{d.nome_dia}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--muted)' }}>
-                  Horário <span style={{ color: '#f87171' }}>*</span>
-                </label>
-                <select className="input-field" value={form.id_horario}
-                  onChange={e => { setForm(f => ({ ...f, id_horario: e.target.value })); setBusinessError(null); }}>
-                  <option value="">Selecione o horário</option>
-                  {horarios.map(h => <option key={h.id_horario} value={h.id_horario}>{h.hora_inicio} – {h.hora_fim}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
-
-          <div className="rounded-lg p-3 text-xs" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e3a8a' }}>
-            <p className="font-semibold mb-1 flex items-center gap-1" style={{ color: '#1e3a8a' }}><Lock className="w-3.5 h-3.5" /> Regras de Negócio Ativas</p>
-            <ul className="list-disc list-inside space-y-0.5">
-              <li>Máximo 2 alocações por turma por dia</li>
-              <li>Disciplinas do mesmo período não compartilham horário/dia</li>
-              <li>Professor não pode ter 2 turmas no mesmo horário/dia</li>
-              <li>Sem conflito de sala (mesma sala, dia e horário)</li>
-            </ul>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button className="btn-primary flex-1" onClick={handleSave} disabled={saving} id="btn-submit-alocacao">
-              {saving ? (
-                <span className="flex items-center gap-2 justify-center">
-                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
-                  Validando...
-                </span>
-              ) : <><Calendar className="w-4 h-4" /> Alocar</>}
-            </button>
-            <button onClick={() => setModalOpen(false)} className="flex-1 py-2 rounded-lg text-sm"
-              style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569' }}>
-              Cancelar
-            </button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }
