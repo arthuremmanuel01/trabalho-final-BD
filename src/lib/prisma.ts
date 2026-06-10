@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 
 function createPrismaClient() {
@@ -14,6 +13,7 @@ function createPrismaClient() {
     return new PrismaClient({ adapter });
   }
 
+  const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
   const adapter = new PrismaBetterSqlite3({
     url: 'file:./prisma/dev.db',
   });

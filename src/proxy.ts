@@ -12,7 +12,7 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'horarios_academicos_super_secret_key_2026'
 );
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
