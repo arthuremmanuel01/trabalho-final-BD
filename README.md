@@ -1,8 +1,14 @@
 # PucHub — Sistema de Gestão de Horários Acadêmicos
 
+🌐 **Acesse o projeto online:** [https://puchub.vercel.app/](https://puchub.vercel.app/)
+
 O **PucHub** é uma plataforma moderna e intuitiva de planejamento e gestão de horários acadêmicos desenvolvida sob medida para a **PUC Minas**. O sistema permite a alocação inteligente de turmas, salas, professores e horários, resolvendo conflitos de choque de horários e otimizando a distribuição física de salas de aula, laboratórios e auditórios.
 
 Este projeto foi construído como parte do Trabalho Prático de Banco de Dados, focando na integração entre um modelo relacional robusto no SQLite (via Prisma ORM) e uma aplicação Web de alto nível com Next.js.
+
+### 📄 Documentos Oficiais do Projeto
+* [📄 Documentação Completa do Sistema](./Sistema%20de%20Gestão%20de%20Horários%20-%20Documentacao.pdf)
+* [📊 Apresentação do Trabalho](./Gestão%20de%20Horários%20Acadêmicos%20-%20Apresentacao.pdf)
 
 ---
 
@@ -62,6 +68,14 @@ O esquema relacional é estruturado em torno de 10 entidades principais mapeadas
 * `SALA`: Espaço físico com número de identificação e capacidade total.
 * `DIA` / `HORARIO`: Definições dos slots de agendamento do campus.
 * `ALOCACAO`: Entidade pivot que relaciona `TURMA`, `SALA`, `DIA` e `HORARIO`, garantindo a integridade dos agendamentos.
+
+### 🗺️ Diagramas do Banco de Dados
+
+**Modelo Conceitual:**
+![Modelo Conceitual](./Banco%20de%20Dados%20Conceitual.jpeg)
+
+**Modelo Relacional:**
+![Modelo Relacional](./Banco%20de%20dados%20Relacional.jpeg)
 
 ---
 
