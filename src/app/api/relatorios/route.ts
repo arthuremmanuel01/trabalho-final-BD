@@ -69,8 +69,7 @@ export async function GET() {
       SELECT * FROM vw_salas_tipo
     `;
 
-    // Serialize BigInt correctly (SQLite returns BigInt for COUNT/SUM aggregations in some Prisma queries)
-    const serialize = (obj: any) => 
+    const serialize = (obj: any) =>
       JSON.parse(JSON.stringify(obj, (key, value) =>
         typeof value === 'bigint' ? Number(value) : value
       ));

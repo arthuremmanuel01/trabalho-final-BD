@@ -257,26 +257,32 @@ export default function AlocacoesPage() {
 
       <div className="mb-6 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Grade de Horários</h1>
+          <h1 className="text-3xl font-bold text-slate-800">
+            {perfil === 'professor' ? 'Minha Grade de Horários' : 'Grade de Horários'}
+          </h1>
           <p className="text-sm mt-1 text-slate-500">
-            Arraste as turmas ou clique em uma para habilitar a Inserção Rápida.
+            {perfil === 'professor' 
+              ? 'Visualize as suas turmas e os horários de aula na instituição.' 
+              : 'Arraste as turmas ou clique em uma para habilitar a Inserção Rápida.'}
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-          <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Sala Global:</label>
-          <select
-            className="border border-slate-300 rounded-md p-1.5 text-sm focus:ring-2 focus:ring-indigo-500 bg-white min-w-[200px]"
-            value={globalSalaId}
-            onChange={e => setGlobalSalaId(e.target.value)}
-          >
-            <option value="">Selecione uma sala...</option>
-            {salas.map(s => (
-              <option key={s.id_sala} value={s.id_sala}>
-                {s.numero} — {s.tipo?.descricao_tipo}
-              </option>
-            ))}
-          </select>
-        </div>
+        {perfil !== 'professor' && (
+          <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+            <label className="text-sm font-semibold text-slate-700 whitespace-nowrap">Sala Global:</label>
+            <select
+              className="border border-slate-300 rounded-md p-1.5 text-sm focus:ring-2 focus:ring-indigo-500 bg-white min-w-[200px]"
+              value={globalSalaId}
+              onChange={e => setGlobalSalaId(e.target.value)}
+            >
+              <option value="">Selecione uma sala...</option>
+              {salas.map(s => (
+                <option key={s.id_sala} value={s.id_sala}>
+                  {s.numero} — {s.tipo?.descricao_tipo}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <DndContext
@@ -288,11 +294,13 @@ export default function AlocacoesPage() {
         onDragCancel={() => setActiveDragData(null)}
       >
         <div className="flex flex-col xl:flex-row flex-1 h-[75vh] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <SidebarClasses 
-            turmas={turmas} 
-            selectedTurmaId={selectedTurmaId}
-            onSelectTurma={(id) => setSelectedTurmaId(id === selectedTurmaId ? null : id)}
-          />
+          {perfil !== 'professor' && (
+            <SidebarClasses 
+              turmas={turmas} 
+              selectedTurmaId={selectedTurmaId}
+              onSelectTurma={(id) => setSelectedTurmaId(id === selectedTurmaId ? null : id)}
+            />
+          )}
 
           <TimetableGrid
             dias={dias}
@@ -301,6 +309,7 @@ export default function AlocacoesPage() {
             activeDragData={activeDragData}
             onDelete={handleDelete}
             perfil={perfil}
+            userId={userId}
             selectedTurma={turmas.find(t => t.id_turma === selectedTurmaId)}
             onSlotClick={handleSlotClick}
             globalSalaId={globalSalaId}

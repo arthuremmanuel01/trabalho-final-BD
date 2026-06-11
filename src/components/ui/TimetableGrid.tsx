@@ -11,6 +11,7 @@ interface TimetableGridProps {
   activeDragData: any;
   onDelete?: (alocacao: any) => void;
   perfil?: string;
+  userId?: number | null;
   selectedTurma?: any;
   onSlotClick?: (dia: any, horario: any) => void;
   globalSalaId?: string;
@@ -23,6 +24,7 @@ export default function TimetableGrid({
   activeDragData,
   onDelete,
   perfil,
+  userId,
   selectedTurma,
   onSlotClick,
   globalSalaId,
@@ -148,13 +150,25 @@ export default function TimetableGrid({
                         onMouseEnter={() => { if (selectedTurma) setHoveredSlot({ diaId: dia.id_dia, horarioId: horario.id_horario }); }}
                         onMouseLeave={() => setHoveredSlot(null)}
                       >
-                        {allocationsInSlot.map((alloc) => (
-                          <div
-                            key={`alloc-${alloc.id_alocacao}`}
-                            className={`relative group border rounded-md p-1.5 shadow-sm transition-shadow ${
-                              alloc.isDraft ? 'bg-amber-50 border-amber-300' : 'bg-white border-slate-200 hover:border-indigo-300'
-                            }`}
-                          >
+                        {allocationsInSlot.map((alloc) => {
+                          const isMyClass = perfil === 'professor' && alloc.turma?.professor?.usuario?.id_usuario === userId;
+                          
+                          let cardClasses = 'bg-white border-slate-200 hover:border-indigo-300';
+                          if (alloc.isDraft) {
+                            cardClasses = 'bg-amber-50 border-amber-300';
+                          } else if (perfil === 'professor') {
+                            if (isMyClass) {
+                              cardClasses = 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-400 shadow-md';
+                            } else {
+                              cardClasses = 'bg-slate-50 border-slate-200 opacity-60 grayscale-[50%]';
+                            }
+                          }
+
+                          return (
+                            <div
+                              key={`alloc-${alloc.id_alocacao}`}
+                              className={`relative group border rounded-md p-1.5 shadow-sm transition-all ${cardClasses}`}
+                            >
                             {alloc.isDraft && (
                               <div className="absolute -top-1.5 -right-1.5 bg-amber-400 text-amber-900 text-[8px] font-bold px-1 rounded-sm shadow-sm z-10">
                                 DRAFT
@@ -198,7 +212,8 @@ export default function TimetableGrid({
                               <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </DroppableSlot>
                     </div>
                   );
